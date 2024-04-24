@@ -19,26 +19,32 @@ def convert_mask_patch(pixel_values, mask, h_patch, w_patch):
     return pixel_values * reshaped_mask + (1 - reshaped_mask) * pixel_values.mean(dim=(-1,-2), keepdim=True)
 
 
-def obtain_masks_on_topk(attribution, topk):
+def obtain_masks_on_topk(attribution, topk, mode='ins'):
     """ 
-    attribution: [1, H_a, W_a]
+    attribution: [N, H_a, W_a]
     """
     H_a, W_a = attribution.shape[-2:]
-    attribution = attribution.reshape(-1, H_a * W_a) # [1, H_a*W_a]
+    attribution = attribution.reshape(-1, H_a * W_a) # [N, H_a*W_a]
     attribution_perturb = attribution + 1e-4*torch.randn_like(attribution) # to avoid equal attributions (typically all zeros or all ones)
     a, _ = torch.topk(attribution_perturb, k=topk, dim=-1)
     a = a[:, -1].unsqueeze(-1)
     mask = (attribution_perturb >= a).float()
-    return mask.reshape(-1, H_a, W_a)
+    if mode == 'ins':
+        pass 
+    elif mode == 'del':
+        mask = 1. - mask
+    else:
+        raise ValueError('Enter game mode either as ins or del.')
+    return mask.reshape(-1, H_a, W_a) # [N, H_a*W_a]
 
 
-def obtain_masked_input_on_topk(x, attribution, topk):
+def obtain_masked_input_on_topk(x, attribution, topk, mode='ins'):
     """ 
-    x: [1, C, H, W]
-    attribution: [1, H_a, W_a]
+    x: [N, C, H, W]
+    attribution: [N, H_a, W_a]
     """
-    mask = obtain_masks_on_topk(attribution, topk)
-    mask = mask.unsqueeze(1) # [1, 1, H_a, W_a]
+    mask = obtain_masks_on_topk(attribution, topk, mode)
+    mask = mask.unsqueeze(1) # [N, 1, H_a, W_a]
     mask = F.interpolate(mask, size=x.shape[-2:], mode='nearest')
     return x * mask
 
@@ -111,4 +117,33 @@ class EvalGame():
     def get_auc(self, x, attribution, mode='ins'):
         probs = self.play_game(x, attribution, mode)
         return probs.sum()
+    
+    def get_insertion_at_topk(self, x, attribution, topk):
+        """"
+        obtain insertion score at top k, i.e, probability of predicted class
+        when inserting top k patches
+        """
+        return self.get_score_at_topk(x, attribution, topk, mode='ins')
+    
+    def get_deletion_at_topk(self, x, attribution, topk):
+        """"
+        obtain deletion score at top k, i.e, probability of predicted class
+        when deleting top k patches
+        """
+        return self.get_score_at_topk(x, attribution, topk, mode='del') 
+    
+    def get_score_at_topk(self, x, attribution, topk, mode='ins'):
+        """ 
+        x: [N, C, H, W]
+        attribution: [N, H_a, W_a]
+        topk: Integer [0, 100]
+        """
+        masked_input = obtain_masked_input_on_topk(x, attribution, topk, mode)
+
+        pseudo_label = self.model(x).argmax(-1) # [1, 1]
+        probs = torch.softmax(self.model(masked_input), dim=-1) # [N, 1000]
+
+        selector = idx_to_selector(pseudo_label, self.output_dim) # [N, 1000]
+        probs = (probs * selector).sum(-1) # [N,]
+        return probs # [N,]
 
