@@ -1,6 +1,8 @@
 # custom folder
 vit-base-patch16-224-finetuned-imageneteval/
 trained/
+results/
+mask_gen_model/
 
 
 # Byte-compiled / optimized / DLL files

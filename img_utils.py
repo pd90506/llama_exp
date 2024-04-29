@@ -2,6 +2,17 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+
+import torch
+
+
+def generate_mask(mask_size, mask_probability, batch_size):
+    # Generating the mask
+    mask = torch.rand((batch_size, mask_size)) < mask_probability
+    mask = mask.float()  # Convert boolean mask to float (0.0, 1.0)
+    return mask
+
+
 def get_pyx_prime(model, outputs):
     """
     Obtain p(y|x) and p(y|x'), where x' is the input with the ith entry missing.

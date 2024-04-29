@@ -1,6 +1,18 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
+
+
+def generate_mask(mask_size, mask_probability, batch_size, seed=None):
+    # Generating the mask
+    if seed is not None:
+        mask = torch.rand((batch_size, mask_size), generator=torch.manual_seed(seed)) < mask_probability
+    else:
+        mask = torch.rand((batch_size, mask_size)) < mask_probability
+    mask = mask.float()  # Convert boolean mask to float (0.0, 1.0)
+    return mask
+
 
 def get_pyx_prime(model, outputs):
     """
@@ -94,3 +106,5 @@ def plot_overlap_np(image, heatmap, img_mean, img_std):
     
     plot_overlap(image, heatmap_img)
     return image, heatmap_img
+
+
