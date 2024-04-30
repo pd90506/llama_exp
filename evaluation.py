@@ -26,7 +26,9 @@ def obtain_masks_on_topk(attribution, topk, mode='ins'):
     H_a, W_a = attribution.shape[-2:]
     attribution = attribution.reshape(-1, H_a * W_a) # [N, H_a*W_a]
     attribution_perturb = attribution + 1e-4*torch.randn_like(attribution) # to avoid equal attributions (typically all zeros or all ones)
-    a, _ = torch.topk(attribution_perturb, k=topk, dim=-1)
+    
+    attribution_size = H_a * W_a
+    a, _ = torch.topk(attribution_perturb, k=int(topk * attribution_size / 100), dim=-1)
     a = a[:, -1].unsqueeze(-1)
     mask = (attribution_perturb >= a).float()
     if mode == 'ins':
