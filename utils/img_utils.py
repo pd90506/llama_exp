@@ -92,7 +92,20 @@ def plot_overlap(image, heatmap):
     plt.imshow(overlap)
     plt.axis('off')
     plt.show()
-    return 0
+
+def plot_overlap_both(image, heatmap):
+    overlap = get_overlap(image, heatmap)
+    # Plot the overlap image
+    plt.subplot(1, 2, 1)
+    plt.imshow(overlap)
+    plt.axis('off')
+
+    # Plot the original image
+    plt.subplot(1, 2, 2)
+    plt.imshow(image)
+    plt.axis('off')
+    plt.show()
+
 
 def plot_overlap_np(image, heatmap, img_mean, img_std):
     shape = image.shape[:2]
@@ -104,7 +117,7 @@ def plot_overlap_np(image, heatmap, img_mean, img_std):
 
     image = unnormalize_and_255_scale(image, img_mean, img_std)
     
-    plot_overlap(image, heatmap_img)
+    plot_overlap_both(image, heatmap_img)
     return image, heatmap_img
 
 

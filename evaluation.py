@@ -48,7 +48,11 @@ def obtain_masked_input_on_topk(x, attribution, topk, mode='ins'):
     mask = obtain_masks_on_topk(attribution, topk, mode)
     mask = mask.unsqueeze(1) # [N, 1, H_a, W_a]
     mask = F.interpolate(mask, size=x.shape[-2:], mode='nearest')
-    return x * mask
+    masked_input = x * mask
+    # mean_pixel = masked_input.sum(dim=(-1, -2), keepdim=True) / (1e-5 + mask.sum(dim=(-1, -2), keepdim=True))
+    # # mean_pixel = x.mean(dim=(-1, -2), keepdim=True)
+    # masked_input = masked_input + (1 - mask) * mean_pixel
+    return masked_input
 
 
 def obtain_masks_sequence(attribution):
